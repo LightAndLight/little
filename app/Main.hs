@@ -9,6 +9,7 @@ import Control.Exception (throwIO)
 import Control.Lens.Cons (_head, _last)
 import Control.Lens.Setter (mapped, over)
 import Control.Lens.TH (makePrisms)
+import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.State.Class (MonadState, modify)
 import Control.Monad.State.Strict (runState)
 import Data.Attoparsec.ByteString.Char8 (Parser)
@@ -16,14 +17,15 @@ import qualified Data.Attoparsec.ByteString.Char8 as Parser
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as ByteString
 import qualified Data.ByteString.Char8 as ByteString.Char8
-import Data.Foldable (traverse_)
+import Data.Foldable (fold, traverse_)
 import Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as HashMap
 import qualified Data.List as List
 import qualified Data.Maybe as Maybe
-import Data.Void (Void)
+import Data.Void (Void, absurd)
 import qualified Options.Applicative as Options
 import qualified System.Directory as Directory
+import qualified System.Process as Process
 import qualified Xeno.DOM as Xeno
 
 data Cli
@@ -61,6 +63,11 @@ data Content a
 
 $(makePrisms ''Content)
 
+data RunContent
+    = Command
+    | Output
+    deriving (Eq, Show)
+
 data Patch
     = Append Path [Content Void]
     | Create Path [Content Void]
@@ -69,6 +76,7 @@ data Patch
 data Block
     = Text ByteString
     | Patch Patch
+    | Run {runCommand :: [String], runContents :: [Content RunContent]}
     deriving (Eq, Show)
 
 $(makePrisms ''Block)
@@ -77,11 +85,12 @@ newtype Document
     = Document [Block]
     deriving (Eq, Show)
 
-renderContent :: Content Void -> String
-renderContent content =
+renderContent :: (a -> String) -> Content a -> String
+renderContent f content =
     case content of
         CText txt -> ByteString.Char8.unpack txt
         CFragment name -> "<<" <> name <> ">>"
+        CExtend extend -> f extend
 
 unescape :: ByteString -> ByteString
 unescape input =
@@ -124,23 +133,52 @@ decodeDocument document =
             Xeno.Text txt ->
                 pure . Text $ unescape txt
             Xeno.Element element ->
-                decodePatch element
+                case Xeno.name element of
+                    "patch" -> decodePatch element
+                    "run" -> decodeRun element
+                    name -> error $ "unexpected node " <> show name
             Xeno.CData txt ->
                 pure $ Text txt
 
     decodePatch :: Monad m => Xeno.Node -> m Block
-    decodePatch patch =
-        case Xeno.name patch of
-            "patch" -> do
-                action <- decodeAction patch
-                Patch
-                    <$> case action of
-                        "append" ->
-                            Append <$> decodePath patch <*> decodeContents patch
-                        "create" ->
-                            Create <$> decodePath patch <*> decodeContents patch
-                        _ -> error $ "invalid action " <> show action
-            name -> error $ "expected node " <> show ("patch" :: String) <> ", got node " <> show name
+    decodePatch patch = do
+        action <- decodeAction patch
+        Patch
+            <$> case action of
+                "append" ->
+                    Append
+                        <$> decodePath patch
+                        <*> decodeContents
+                            (\node -> error $ "unexpected node " <> show (Xeno.name node))
+                            patch
+                "create" ->
+                    Create
+                        <$> decodePath patch
+                        <*> decodeContents
+                            (\node -> error $ "unexpected node " <> show (Xeno.name node))
+                            patch
+                _ -> error $ "invalid action " <> show action
+
+    decodeRunContent :: Monad m => Xeno.Node -> m RunContent
+    decodeRunContent node =
+        case Xeno.name node of
+            "command" ->
+                pure Command
+            "output" ->
+                pure Output
+            name -> error $ "unexpected node " <> show name
+
+    decodeCommand :: Applicative m => Xeno.Node -> m String
+    decodeCommand patch =
+        case List.find (("command" ==) . fst) (Xeno.attributes patch) of
+            Nothing -> error $ "missing attribute " <> show ("command" :: String)
+            Just (_, value) -> pure $ ByteString.Char8.unpack value
+
+    decodeRun :: Monad m => Xeno.Node -> m Block
+    decodeRun run =
+        Run
+            <$> fmap words (decodeCommand run)
+            <*> decodeContents decodeRunContent run
 
     decodeAction :: Applicative m => Xeno.Node -> m ByteString
     decodeAction patch =
@@ -174,24 +212,24 @@ decodeDocument document =
                     Left err -> error $ "path parse error: " <> err
                     Right path -> pure path
 
-    decodeContents :: Applicative m => Xeno.Node -> m [Content Void]
-    decodeContents contentNode =
+    decodeContents :: Applicative m => (Xeno.Node -> m a) -> Xeno.Node -> m [Content a]
+    decodeContents f contentNode =
         over
             (_head . _CText)
             (\txt -> Maybe.fromMaybe txt (ByteString.stripPrefix "\n" txt))
             . over
                 (_last . _CText)
                 (\txt -> Maybe.fromMaybe txt (ByteString.stripSuffix "\n" txt))
-            <$> traverse decodeContent (Xeno.contents contentNode)
+            <$> traverse (decodeContent f) (Xeno.contents contentNode)
 
-    decodeContent :: Applicative m => Xeno.Content -> m (Content Void)
-    decodeContent content =
+    decodeContent :: Applicative m => (Xeno.Node -> m a) -> Xeno.Content -> m (Content a)
+    decodeContent f content =
         case content of
             Xeno.Text txt -> pure . CText $ unescape txt
             Xeno.Element element ->
                 case Xeno.name element of
                     "fragment" -> CFragment <$> decodeFragmentName element
-                    name -> error $ "expected node " <> show ("fragment" :: String) <> ", got " <> show name
+                    _ -> CExtend <$> f element
             Xeno.CData txt ->
                 pure $ CText txt
 
@@ -207,37 +245,52 @@ decodeDocumentFile file = do
     dom <- either throwIO pure (Xeno.parse content)
     decodeDocument dom
 
-toDoc :: Document -> String
-toDoc (Document blocks) =
-    foldMap
-        ( \case
-            Text txt -> ByteString.Char8.unpack txt
-            Patch patch ->
-                case patch of
-                    Append path content ->
+renderRunContent :: String -> String -> RunContent -> String
+renderRunContent cmd output content =
+    case content of
+        Command ->
+            cmd
+        Output ->
+            output
+
+renderBlock :: MonadIO m => Block -> m String
+renderBlock block =
+    case block of
+        Text txt ->
+            pure $ ByteString.Char8.unpack txt
+        Patch patch ->
+            case patch of
+                Append path content ->
+                    pure $
                         unlines
                             [ "```haskell"
                             , "-- <<" <> renderPath path <> ">> +="
-                            , foldMap renderContent content
+                            , foldMap (renderContent absurd) content
                             , "```"
                             ]
-                    Create path content ->
+                Create path content ->
+                    pure $
                         unlines
                             [ "```haskell"
                             , "-- <<" <> renderPath path <> ">> ="
-                            , foldMap renderContent content
+                            , foldMap (renderContent absurd) content
                             , "```"
                             ]
-        )
-        blocks
+        Run cmd content -> do
+            output <- liftIO $ Process.readProcess (head cmd) (tail cmd) ""
+            pure $ foldMap (renderContent $ renderRunContent (unwords cmd) output) content
+
+toDoc :: MonadIO m => Document -> m String
+toDoc (Document blocks) =
+    fold <$> traverse renderBlock blocks
 
 runDoc :: FilePath -> Maybe FilePath -> IO ()
 runDoc file mOutFile = do
     document <- decodeDocumentFile file
     let docString = toDoc document
     case mOutFile of
-        Nothing -> putStrLn docString
-        Just outFile -> writeFile outFile docString *> putStrLn ("Wrote " <> outFile)
+        Nothing -> putStrLn =<< docString
+        Just outFile -> (writeFile outFile =<< docString) *> putStrLn ("Wrote " <> outFile)
 
 newtype CodeState = CodeState
     { csFiles :: HashMap FilePath CodeContent
@@ -338,6 +391,7 @@ toCode (Document blocks) =
                         create path content
                     Append path content ->
                         append path content
+            Run _ _ -> pure ()
 
 runCode :: FilePath -> Maybe FilePath -> IO ()
 runCode file mOutDir = do

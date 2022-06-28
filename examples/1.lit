@@ -46,4 +46,20 @@ Finally, the entrypoint:
 main :: IO ()
 main = putStrLn $ showExpr $ Lam "x" (Var "x")
 </patch>
+
+## Commands
+
+I'm going to run `ls`.
+
+<run command="ls -l">
+```
+$ <command />
+<output />
+```
+</run>
+
+This tests calling an external program and embedding its results.
+I want to use something similar to embed live code examples. I want to
+insert generated outputs, but also specify *expected* outputs and have
+`little` check that expected == actual.
 </document>
