@@ -22,6 +22,7 @@ import Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as HashMap
 import qualified Data.List as List
 import qualified Data.Maybe as Maybe
+import Data.Void (Void)
 import qualified Options.Applicative as Options
 import qualified System.Directory as Directory
 import qualified Xeno.DOM as Xeno
@@ -53,16 +54,17 @@ data Path = Path FilePath [String]
 renderPath :: Path -> String
 renderPath (Path file fragments) = file <> foldMap (\fragment -> ":" <> fragment) fragments
 
-data Content
+data Content a
     = CText ByteString
     | CFragment String
+    | CExtend !a
     deriving (Eq, Show)
 
 $(makePrisms ''Content)
 
 data Patch
-    = Append Path [Content]
-    | Create Path [Content]
+    = Append Path [Content Void]
+    | Create Path [Content Void]
     deriving (Eq, Show)
 
 data Block
@@ -76,7 +78,7 @@ newtype Document
     = Document [Block]
     deriving (Eq, Show)
 
-renderContent :: Content -> String
+renderContent :: Content Void -> String
 renderContent content =
     case content of
         CText txt -> ByteString.Char8.unpack txt
@@ -173,7 +175,7 @@ decodeDocument document =
                     Left err -> error $ "path parse error: " <> err
                     Right path -> pure path
 
-    decodeContents :: Applicative m => Xeno.Node -> m [Content]
+    decodeContents :: Applicative m => Xeno.Node -> m [Content Void]
     decodeContents contentNode =
         over
             (_head . _CText)
@@ -183,7 +185,7 @@ decodeDocument document =
                 (\txt -> Maybe.fromMaybe txt (ByteString.stripSuffix "\n" txt))
             <$> traverse decodeContent (Xeno.contents contentNode)
 
-    decodeContent :: Applicative m => Xeno.Content -> m Content
+    decodeContent :: Applicative m => Xeno.Content -> m (Content Void)
     decodeContent content =
         case content of
             Xeno.Text txt -> pure . CText $ unescape txt
@@ -243,7 +245,7 @@ newtype CodeState = CodeState
     }
 
 data CodeContent = CodeContent
-    { ccContents :: [Content]
+    { ccContents :: [Content Void]
     , ccFragments :: HashMap String CodeContent
     }
 
@@ -259,11 +261,11 @@ renderCodeContent (CodeContent contents fragments) =
         )
         contents
 
-create :: MonadState CodeState m => Path -> [Content] -> m ()
+create :: MonadState CodeState m => Path -> [Content Void] -> m ()
 create path content =
     modify $ createCodeState path content
   where
-    createCodeState :: Path -> [Content] -> CodeState -> CodeState
+    createCodeState :: Path -> [Content Void] -> CodeState -> CodeState
     createCodeState (Path file fragments) cs (CodeState files) =
         case HashMap.lookup file files of
             Nothing ->
@@ -276,7 +278,7 @@ create path content =
                 CodeState $
                     HashMap.insert file (createCodeContent fragments cs content) files
 
-    createCodeContent :: [String] -> [Content] -> CodeContent -> CodeContent
+    createCodeContent :: [String] -> [Content Void] -> CodeContent -> CodeContent
     createCodeContent path cs (CodeContent content fragments) =
         case path of
             [] ->
@@ -296,11 +298,11 @@ create path content =
                             content
                             (HashMap.insert fragmentName (createCodeContent path' cs fragment) fragments)
 
-append :: MonadState CodeState m => Path -> [Content] -> m ()
+append :: MonadState CodeState m => Path -> [Content Void] -> m ()
 append path content =
     modify $ appendCodeState path content
   where
-    appendCodeState :: Path -> [Content] -> CodeState -> CodeState
+    appendCodeState :: Path -> [Content Void] -> CodeState -> CodeState
     appendCodeState (Path file fragments) cs (CodeState files) =
         case HashMap.lookup file files of
             Nothing ->
@@ -309,7 +311,7 @@ append path content =
                 CodeState $
                     HashMap.insert file (appendCodeContent fragments cs content) files
 
-    appendCodeContent :: [String] -> [Content] -> CodeContent -> CodeContent
+    appendCodeContent :: [String] -> [Content Void] -> CodeContent -> CodeContent
     appendCodeContent path cs (CodeContent content fragments) =
         case path of
             [] -> CodeContent (content <> if null content then cs else CText "\n" : cs) fragments
