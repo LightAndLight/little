@@ -7,9 +7,8 @@ module Main where
 import Control.Applicative (many, optional, some, (<**>), (<|>))
 import Control.Exception (throwIO)
 import Control.Lens.Cons (_head, _last)
-import Control.Lens.Setter (ASetter, mapped, over)
+import Control.Lens.Setter (mapped, over)
 import Control.Lens.TH (makePrisms)
-import Control.Monad (when)
 import Control.Monad.State.Class (MonadState, modify)
 import Control.Monad.State.Strict (runState)
 import Data.Attoparsec.ByteString.Char8 (Parser)
@@ -17,7 +16,7 @@ import qualified Data.Attoparsec.ByteString.Char8 as Parser
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as ByteString
 import qualified Data.ByteString.Char8 as ByteString.Char8
-import Data.Foldable (fold, traverse_)
+import Data.Foldable (traverse_)
 import Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as HashMap
 import qualified Data.List as List
@@ -107,17 +106,17 @@ decodeDocument document =
         "document" ->
             Document <$> decodeBlocks document
         name ->
-            error $ "expecting node " <> show "document" <> ", got node " <> show name
+            error $ "expecting node " <> show ("document" :: String) <> ", got node " <> show name
   where
     decodeBlocks :: Monad m => Xeno.Node -> m [Block]
-    decodeBlocks document =
+    decodeBlocks node =
         over
             (_last . _Text)
             (\txt -> Maybe.fromMaybe txt (ByteString.stripSuffix "\n" txt))
             . over
                 (mapped . _Text)
                 (\txt -> Maybe.fromMaybe txt (ByteString.stripPrefix "\n" txt))
-            <$> traverse decodeBlock (Xeno.contents document)
+            <$> traverse decodeBlock (Xeno.contents node)
 
     decodeBlock :: Monad m => Xeno.Content -> m Block
     decodeBlock content =
@@ -141,12 +140,12 @@ decodeDocument document =
                         "create" ->
                             Create <$> decodePath patch <*> decodeContents patch
                         _ -> error $ "invalid action " <> show action
-            name -> error $ "expected node " <> show "patch" <> ", got node " <> show name
+            name -> error $ "expected node " <> show ("patch" :: String) <> ", got node " <> show name
 
     decodeAction :: Applicative m => Xeno.Node -> m ByteString
     decodeAction patch =
         case List.find (("action" ==) . fst) (Xeno.attributes patch) of
-            Nothing -> error $ "missing attribute " <> show "action"
+            Nothing -> error $ "missing attribute " <> show ("action" :: String)
             Just (_, value) -> pure value
 
     pathParser :: Parser Path
@@ -169,7 +168,7 @@ decodeDocument document =
     decodePath :: Applicative m => Xeno.Node -> m Path
     decodePath node =
         case List.find (("path" ==) . fst) (Xeno.attributes node) of
-            Nothing -> error $ "missing attribute " <> show "path"
+            Nothing -> error $ "missing attribute " <> show ("path" :: String)
             Just (_, value) ->
                 case Parser.parseOnly pathParser value of
                     Left err -> error $ "path parse error: " <> err
@@ -192,14 +191,14 @@ decodeDocument document =
             Xeno.Element element ->
                 case Xeno.name element of
                     "fragment" -> CFragment <$> decodeFragmentName element
-                    name -> error $ "expected node " <> show "fragment" <> ", got " <> show name
+                    name -> error $ "expected node " <> show ("fragment" :: String) <> ", got " <> show name
             Xeno.CData txt ->
                 pure $ CText txt
 
     decodeFragmentName :: Applicative m => Xeno.Node -> m String
     decodeFragmentName node =
         case List.find (("name" ==) . fst) (Xeno.attributes node) of
-            Nothing -> error $ "missing attrbute " <> show "name"
+            Nothing -> error $ "missing attrbute " <> show ("name" :: String)
             Just (_, value) -> pure $ ByteString.Char8.unpack value
 
 decodeDocumentFile :: FilePath -> IO Document
@@ -274,29 +273,29 @@ create path content =
                         CodeState $ HashMap.insert file (CodeContent content mempty) files
                     fragmentName : _ ->
                         error $ "fragment " <> show fragmentName <> " does not exist"
-            Just content ->
+            Just content' ->
                 CodeState $
-                    HashMap.insert file (createCodeContent fragments cs content) files
+                    HashMap.insert file (createCodeContent fragments cs content') files
 
     createCodeContent :: [String] -> [Content Void] -> CodeContent -> CodeContent
-    createCodeContent path cs (CodeContent content fragments) =
-        case path of
+    createCodeContent path' cs (CodeContent content' fragments) =
+        case path' of
             [] ->
                 error $ "path already has content"
-            fragmentName : path' ->
+            fragmentName : path'' ->
                 case HashMap.lookup fragmentName fragments of
                     Nothing ->
-                        case path' of
+                        case path'' of
                             [] ->
                                 CodeContent
-                                    content
+                                    content'
                                     (HashMap.insert fragmentName (CodeContent cs mempty) fragments)
                             fragmentName' : _ ->
                                 error $ "fragment " <> show fragmentName' <> " does not exist"
                     Just fragment ->
                         CodeContent
-                            content
-                            (HashMap.insert fragmentName (createCodeContent path' cs fragment) fragments)
+                            content'
+                            (HashMap.insert fragmentName (createCodeContent path'' cs fragment) fragments)
 
 append :: MonadState CodeState m => Path -> [Content Void] -> m ()
 append path content =
@@ -307,22 +306,22 @@ append path content =
         case HashMap.lookup file files of
             Nothing ->
                 error $ "file " <> show file <> " does not exist"
-            Just content ->
+            Just content' ->
                 CodeState $
-                    HashMap.insert file (appendCodeContent fragments cs content) files
+                    HashMap.insert file (appendCodeContent fragments cs content') files
 
     appendCodeContent :: [String] -> [Content Void] -> CodeContent -> CodeContent
-    appendCodeContent path cs (CodeContent content fragments) =
-        case path of
-            [] -> CodeContent (content <> if null content then cs else CText "\n" : cs) fragments
-            fragmentName : path' ->
+    appendCodeContent path' cs (CodeContent content' fragments) =
+        case path' of
+            [] -> CodeContent (content' <> if null content' then cs else CText "\n" : cs) fragments
+            fragmentName : path'' ->
                 case HashMap.lookup fragmentName fragments of
                     Nothing ->
                         error $ "fragment " <> show fragmentName <> " does not exist"
                     Just fragment ->
                         CodeContent
-                            content
-                            (HashMap.insert fragmentName (appendCodeContent path' cs fragment) fragments)
+                            content'
+                            (HashMap.insert fragmentName (appendCodeContent path'' cs fragment) fragments)
 
 toCode :: Document -> HashMap FilePath String
 toCode (Document blocks) =
