@@ -11,7 +11,9 @@
         cabal-install
         (haskell-language-server.override { supportedGhcVersions = [ "922" ]; })
 	pandoc
+        cabal2nix
       ];
     };
+    packages.little = pkgs.haskell.packages.ghc922.callPackage ./little.nix {};
   });
 }

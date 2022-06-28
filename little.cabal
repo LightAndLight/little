@@ -15,6 +15,7 @@ executable little
     mtl,
     optparse-applicative,
     process,
+    temporary,
     unordered-containers,
     xeno
   hs-source-dirs:   app

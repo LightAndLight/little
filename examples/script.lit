@@ -1,0 +1,34 @@
+#! little code --exec sh
+<?xml version="1.0" encoding="utf-8"?>
+<document>
+# A Literate Bash Script
+
+This script describes how to clean up `docker` resources.
+
+1. Remove containers
+
+   <patch action="create" path="script.sh">
+   docker ps --all --format "{{.ID}}" | xargs docker rm
+   </patch>
+
+2. Remove images
+
+   <patch action="append" path="script.sh">
+   docker images --format "{{.ID}}" | xargs docker rmi -f
+   </patch>
+
+3. Remove volumes
+
+   <patch action="append" path="script.sh">
+   docker volume prune
+   </patch>
+
+4. Remove build cache
+
+   <patch action="append" path="script.sh">
+   docker builder prune
+   </patch>
+
+The `.lit` document is executable; it compiles the script to a temporary directory
+and executes it.
+</document>

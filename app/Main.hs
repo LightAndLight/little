@@ -25,12 +25,14 @@ import qualified Data.Maybe as Maybe
 import Data.Void (Void, absurd)
 import qualified Options.Applicative as Options
 import qualified System.Directory as Directory
+import qualified System.IO
+import qualified System.IO.Temp as Temporary
 import qualified System.Process as Process
 import qualified Xeno.DOM as Xeno
 
 data Cli
     = Doc {docInput :: FilePath, docOutput :: Maybe FilePath}
-    | Code {codeInput :: FilePath, codeOutput :: Maybe FilePath}
+    | Code {codeInput :: FilePath, codeOutput :: Maybe FilePath, codeExec :: Maybe String}
 
 docParser :: Options.Parser Cli
 docParser =
@@ -43,6 +45,7 @@ codeParser =
     Code
         <$> Options.strArgument (Options.metavar "FILE")
         <*> optional (Options.strOption (Options.long "output" <> Options.short 'o' <> Options.metavar "DIR"))
+        <*> optional (Options.strOption (Options.long "exec" <> Options.metavar "command"))
 
 cliParser :: Options.Parser Cli
 cliParser =
@@ -239,12 +242,6 @@ decodeDocument document =
             Nothing -> error $ "missing attrbute " <> show ("name" :: String)
             Just (_, value) -> pure $ ByteString.Char8.unpack value
 
-decodeDocumentFile :: FilePath -> IO Document
-decodeDocumentFile file = do
-    content <- ByteString.readFile file
-    dom <- either throwIO pure (Xeno.parse content)
-    decodeDocument dom
-
 renderRunContent :: String -> String -> RunContent -> String
 renderRunContent cmd output content =
     case content of
@@ -286,7 +283,13 @@ toDoc (Document blocks) =
 
 runDoc :: FilePath -> Maybe FilePath -> IO ()
 runDoc file mOutFile = do
-    document <- decodeDocumentFile file
+    content <-
+        stripShebang
+            <$> case file of
+                "-" -> ByteString.hGetContents System.IO.stdin
+                _ -> ByteString.readFile file
+    dom <- either throwIO pure (Xeno.parse content)
+    document <- decodeDocument dom
     let docString = toDoc document
     case mOutFile of
         Nothing -> putStrLn =<< docString
@@ -393,25 +396,53 @@ toCode (Document blocks) =
                         append path content
             Run _ _ -> pure ()
 
-runCode :: FilePath -> Maybe FilePath -> IO ()
-runCode file mOutDir = do
-    document <- decodeDocumentFile file
+stripShebang :: ByteString -> ByteString
+stripShebang input =
+    case ByteString.Char8.stripPrefix "#!" input of
+        Nothing -> input
+        Just input' ->
+            ByteString.Char8.drop 1 $
+                ByteString.Char8.dropWhile (\c -> c /= '\n') input'
+
+runCode :: FilePath -> Maybe FilePath -> Maybe String -> IO ()
+runCode file mOutDir mExec = do
+    content <-
+        stripShebang
+            <$> case file of
+                "-" -> ByteString.hGetContents System.IO.stdin
+                _ -> ByteString.readFile file
+    dom <- either throwIO pure (Xeno.parse content)
+    document <- decodeDocument dom
     let files = toCode document
     case mOutDir of
         Nothing ->
-            HashMap.foldlWithKey
-                (\acc filename content -> acc *> putStrLn ("-- " <> filename) *> putStrLn content)
-                (pure ())
-                files
+            case mExec of
+                Nothing ->
+                    HashMap.foldlWithKey
+                        (\acc filename fileContent -> acc *> putStrLn ("-- " <> filename) *> putStrLn fileContent)
+                        (pure ())
+                        files
+                Just exec ->
+                    Temporary.withSystemTempDirectory "little-code" $ \tmpDir ->
+                        HashMap.foldlWithKey
+                            ( \acc filename fileContent -> do
+                                acc
+                                let path = tmpDir <> "/" <> filename
+                                writeFile path fileContent
+                                Process.callProcess exec [path]
+                            )
+                            (pure ())
+                            files
         Just outDir -> do
             Directory.removeDirectoryRecursive outDir
             Directory.createDirectoryIfMissing True outDir
             HashMap.foldlWithKey
-                ( \acc filename content -> do
+                ( \acc filename fileContent -> do
                     acc
                     let path = outDir <> "/" <> filename
-                    writeFile path content
+                    writeFile path fileContent
                     putStrLn $ "Wrote " <> path
+                    traverse_ (\exec -> Process.callProcess exec [path]) mExec
                 )
                 (pure ())
                 files
@@ -421,4 +452,4 @@ main = do
     cli <- Options.execParser $ Options.info (cliParser <**> Options.helper) Options.fullDesc
     case cli of
         Doc file mOut -> runDoc file mOut
-        Code file mOut -> runCode file mOut
+        Code file mOut mExec -> runCode file mOut mExec
