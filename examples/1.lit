@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<document>
+# My Example
+
+## Introduction
+
+I want to use patches to explain the evolution of a codebase. Literate programming
+taken to its logical conclusion.
+
+The following patch initialises `Main.hs`. See that it has a placeholder; a
+*fragment* called 'definitions'.
+
+<patch action="create" path="Main.hs">
+module Main where
+
+<fragment name="definitions" />
+
+<fragment name="entrypoint" />
+</patch>
+
+Next I define `Expr`.
+
+<patch action="create" path="Main.hs:definitions">
+data Expr
+  = Var String
+  | Lam String Expr
+  | App Expr Expr
+  deriving (Eq, Show)
+</patch>
+
+This function renders the expressions.
+
+<patch action="append" path="Main.hs:definitions">
+
+showExpr :: Expr -> String
+showExpr expr =
+  case expr of
+    Var name -> name
+    <![CDATA[Lam name body -> "\\" <> name <> " -> " <> showExpr body]]>
+    <![CDATA[App f x -> showExpr f <> " " <> showExpr x]]>
+</patch>
+
+Finally, the entrypoint:
+
+<patch action="create" path="Main.hs:entrypoint">
+main :: IO ()
+main = putStrLn $ showExpr $ Lam "x" (Var "x")
+</patch>
+</document>
