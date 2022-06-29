@@ -7,7 +7,7 @@ module Main where
 import Control.Applicative (many, optional, some, (<**>), (<|>))
 import Control.Exception (throwIO)
 import Control.Lens.Cons (_head, _last)
-import Control.Lens.Setter (mapped, over)
+import Control.Lens.Setter (over)
 import Control.Lens.TH (makePrisms)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.State.Class (MonadState, modify)
@@ -71,9 +71,15 @@ data RunContent
     | Output
     deriving (Eq, Show)
 
+data PatchContent
+    = PPath
+    | PAction
+    | PCode [Content Void]
+    deriving (Eq, Show)
+
 data Patch
-    = Append Path [Content Void]
-    | Create Path [Content Void]
+    = Append Path [Content PatchContent]
+    | Create Path [Content PatchContent]
     deriving (Eq, Show)
 
 data Block
@@ -126,7 +132,7 @@ decodeDocument document =
             (_last . _Text)
             (\txt -> Maybe.fromMaybe txt (ByteString.stripSuffix "\n" txt))
             . over
-                (mapped . _Text)
+                (_head . _Text)
                 (\txt -> Maybe.fromMaybe txt (ByteString.stripPrefix "\n" txt))
             <$> traverse decodeBlock (Xeno.contents node)
 
@@ -143,6 +149,24 @@ decodeDocument document =
             Xeno.CData txt ->
                 pure $ Text txt
 
+    decodePatchContent :: Monad m => Xeno.Node -> m PatchContent
+    decodePatchContent node =
+        case Xeno.name node of
+            "path" ->
+                case Xeno.contents node of
+                    [] -> pure PPath
+                    contents -> error $ "unexpected contents " <> show contents
+            "action" ->
+                case Xeno.contents node of
+                    [] -> pure PAction
+                    contents -> error $ "unexpected contents " <> show contents
+            "code" ->
+                PCode
+                    <$> decodeContents
+                        (error . ("unexpected node " <>) . show . Xeno.name)
+                        node
+            _ -> error $ "unexpected node " <> show (Xeno.name node)
+
     decodePatch :: Monad m => Xeno.Node -> m Block
     decodePatch patch = do
         action <- decodeAction patch
@@ -151,15 +175,11 @@ decodeDocument document =
                 "append" ->
                     Append
                         <$> decodePath patch
-                        <*> decodeContents
-                            (\node -> error $ "unexpected node " <> show (Xeno.name node))
-                            patch
+                        <*> decodeContents decodePatchContent patch
                 "create" ->
                     Create
                         <$> decodePath patch
-                        <*> decodeContents
-                            (\node -> error $ "unexpected node " <> show (Xeno.name node))
-                            patch
+                        <*> decodeContents decodePatchContent patch
                 _ -> error $ "invalid action " <> show action
 
     decodeRunContent :: Monad m => Xeno.Node -> m RunContent
@@ -250,6 +270,14 @@ renderRunContent cmd output content =
         Output ->
             output
 
+renderPatchContent :: String -> String -> PatchContent -> String
+renderPatchContent path action content =
+    case content of
+        PPath -> path
+        PAction -> action
+        PCode cs ->
+            foldMap (renderContent absurd) cs
+
 renderBlock :: MonadIO m => Block -> m String
 renderBlock block =
     case block of
@@ -259,20 +287,14 @@ renderBlock block =
             case patch of
                 Append path content ->
                     pure $
-                        unlines
-                            [ "```haskell"
-                            , "-- <<" <> renderPath path <> ">> +="
-                            , foldMap (renderContent absurd) content
-                            , "```"
-                            ]
+                        foldMap
+                            (renderContent $ renderPatchContent (renderPath path) "+=")
+                            content
                 Create path content ->
                     pure $
-                        unlines
-                            [ "```haskell"
-                            , "-- <<" <> renderPath path <> ">> ="
-                            , foldMap (renderContent absurd) content
-                            , "```"
-                            ]
+                        foldMap
+                            (renderContent $ renderPatchContent (renderPath path) "=")
+                            content
         Run cmd content -> do
             output <- liftIO $ Process.readProcess (head cmd) (tail cmd) ""
             pure $ foldMap (renderContent $ renderRunContent (unwords cmd) output) content
@@ -304,17 +326,22 @@ data CodeContent = CodeContent
     , ccFragments :: HashMap String CodeContent
     }
 
-renderCodeContent :: CodeContent -> String
-renderCodeContent (CodeContent contents fragments) =
-    foldMap
-        ( \case
-            CText txt -> ByteString.Char8.unpack txt
-            CFragment name ->
-                case HashMap.lookup name fragments of
-                    Nothing -> error $ "fragment " <> show name <> " does not exist"
-                    Just contents' -> renderCodeContent contents'
-        )
-        contents
+codeContentToCode :: CodeContent -> String
+codeContentToCode (CodeContent contents fragments) =
+    go absurd contents
+  where
+    go :: (a -> String) -> [Content a] -> String
+    go f =
+        foldMap
+            ( \case
+                CText txt -> ByteString.Char8.unpack txt
+                CFragment name ->
+                    case HashMap.lookup name fragments of
+                        Nothing -> error $ "fragment " <> show name <> " does not exist"
+                        Just contents' -> codeContentToCode contents'
+                CExtend extend ->
+                    f extend
+            )
 
 create :: MonadState CodeState m => Path -> [Content Void] -> m ()
 create path content =
@@ -326,7 +353,7 @@ create path content =
             Nothing ->
                 case fragments of
                     [] ->
-                        CodeState $ HashMap.insert file (CodeContent content mempty) files
+                        CodeState $ HashMap.insert file (CodeContent cs mempty) files
                     fragmentName : _ ->
                         error $ "fragment " <> show fragmentName <> " does not exist"
             Just content' ->
@@ -382,8 +409,21 @@ append path content =
 toCode :: Document -> HashMap FilePath String
 toCode (Document blocks) =
     let ((), CodeState files) = flip runState (CodeState mempty) $ traverse_ blockToCode blocks
-     in renderCodeContent <$> files
+     in codeContentToCode <$> files
   where
+    getCode :: Applicative m => [Content PatchContent] -> m [Content Void]
+    getCode cs =
+        case cs of
+            [] -> undefined
+            c : cs' ->
+                case c of
+                    CExtend extend ->
+                        case extend of
+                            PCode content -> pure content
+                            _ -> getCode cs'
+                    CText _ -> getCode cs'
+                    CFragment _ -> getCode cs'
+
     blockToCode :: MonadState CodeState m => Block -> m ()
     blockToCode block =
         case block of
@@ -391,9 +431,9 @@ toCode (Document blocks) =
             Patch patch ->
                 case patch of
                     Create path content ->
-                        create path content
+                        create path =<< getCode content
                     Append path content ->
-                        append path content
+                        append path =<< getCode content
             Run _ _ -> pure ()
 
 stripShebang :: ByteString -> ByteString

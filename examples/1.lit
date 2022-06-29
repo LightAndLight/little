@@ -11,26 +11,39 @@ The following patch initialises `Main.hs`. See that it has a placeholder; a
 *fragment* called 'definitions'.
 
 <patch action="create" path="Main.hs">
+```
+-- &lt;&lt;<path />&gt;&gt;<action />
+<code>
 module Main where
 
 <fragment name="definitions" />
 
 <fragment name="entrypoint" />
+</code>
+```
 </patch>
 
 Next I define `Expr`.
 
 <patch action="create" path="Main.hs:definitions">
+```
+-- &lt;&lt;<path />&gt;&gt;<action />
+<code>
 data Expr
   = Var String
   | Lam String Expr
   | App Expr Expr
   deriving (Eq, Show)
+</code>
+```
 </patch>
 
 This function renders the expressions.
 
 <patch action="append" path="Main.hs:definitions">
+```
+-- &lt;&lt;<path />&gt;&gt;<action />
+<code>
 
 showExpr :: Expr -> String
 showExpr expr =
@@ -38,13 +51,20 @@ showExpr expr =
     Var name -> name
     <![CDATA[Lam name body -> "\\" <> name <> " -> " <> showExpr body]]>
     <![CDATA[App f x -> showExpr f <> " " <> showExpr x]]>
+</code>
+```
 </patch>
 
 Finally, the entrypoint:
 
 <patch action="create" path="Main.hs:entrypoint">
+```
+-- &lt;&lt;<path />&gt;&gt;<action />
+<code>
 main :: IO ()
 main = putStrLn $ showExpr $ Lam "x" (Var "x")
+</code>
+```
 </patch>
 
 ## Commands
