@@ -7,7 +7,7 @@ This script describes how to clean up `docker` resources.
 
 1. Remove containers
 
-<patch action="create" path="script.sh">
+<patch action="create" path=".">
    ```
    # &lt;&lt;<path />&gt;&gt;<action />
    <code>docker ps --all --format "{{.ID}}" | xargs docker rm</code>
@@ -16,7 +16,7 @@ This script describes how to clean up `docker` resources.
 
 2. Remove images
 
-<patch action="append" path="script.sh">
+<patch action="append" path=".">
    ```
    # &lt;&lt;<path />&gt;&gt;<action />
    <code>docker images --format "{{.ID}}" | xargs docker rmi -f</code>
@@ -25,7 +25,7 @@ This script describes how to clean up `docker` resources.
 
 3. Remove volumes
 
-<patch action="append" path="script.sh">
+<patch action="append" path=".">
    ```
    # &lt;&lt;<path />&gt;&gt;<action />
    <code>docker volume prune</code>
@@ -34,7 +34,7 @@ This script describes how to clean up `docker` resources.
 
 4. Remove build cache
 
-<patch action="append" path="script.sh">
+<patch action="append" path=".">
    ```
    # &lt;&lt;<path />&gt;&gt;<action />
    <code>docker builder prune</code>
