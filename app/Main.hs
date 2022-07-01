@@ -283,11 +283,7 @@ toDoc (Document blocks) =
 
 runDoc :: DocCommand -> IO ()
 runDoc doc = do
-  content <-
-    stripShebang
-      <$> case doc.input of
-        "-" -> ByteString.hGetContents System.IO.stdin
-        _ -> ByteString.readFile doc.input
+  content <- stripShebang <$> readInputSource doc.input
   dom <- either throwIO pure (Xeno.parse content)
   document <- decodeDocument dom
   let docString = toDoc document
@@ -424,11 +420,7 @@ stripShebang input =
 
 runCode :: CodeCommand -> IO ()
 runCode code = do
-  content <-
-    stripShebang
-      <$> case code.input of
-        "-" -> ByteString.hGetContents System.IO.stdin
-        _ -> ByteString.readFile code.input
+  content <- stripShebang <$> readInputSource code.input
   dom <- either throwIO pure (Xeno.parse content)
   document <- decodeDocument dom
   let files = toCode document
@@ -465,13 +457,28 @@ runCode code = do
         (pure ())
         files
 
+data InputSource
+  = Stdin
+  | File FilePath
+
+readInputSource :: InputSource -> IO ByteString
+readInputSource src =
+  case src of
+    Stdin -> ByteString.hGetContents System.IO.stdin
+    File file -> ByteString.readFile file
+
+inputSource :: Options.ReadM InputSource
+inputSource =
+  Options.maybeReader (\case "-" -> Just Stdin; _ -> Nothing)
+    <|> File <$> Options.str
+
 data DocCommand = DocCommand
-  { input :: FilePath
+  { input :: InputSource
   , output :: Maybe FilePath
   }
 
 data CodeCommand = CodeCommand
-  { input :: FilePath
+  { input :: InputSource
   , output :: Maybe FilePath
   , exec :: Maybe String
   }
@@ -483,13 +490,13 @@ data Cli
 docParser :: Options.Parser DocCommand
 docParser =
   DocCommand
-    <$> Options.strArgument (Options.metavar "FILE")
+    <$> Options.argument inputSource (Options.metavar "FILE")
     <*> optional (Options.strOption (Options.long "output" <> Options.short 'o' <> Options.metavar "FILE"))
 
 codeParser :: Options.Parser CodeCommand
 codeParser =
   CodeCommand
-    <$> Options.strArgument (Options.metavar "FILE")
+    <$> Options.argument inputSource (Options.metavar "FILE")
     <*> optional (Options.strOption (Options.long "output" <> Options.short 'o' <> Options.metavar "DIR"))
     <*> optional (Options.strOption (Options.long "exec" <> Options.metavar "command"))
 
