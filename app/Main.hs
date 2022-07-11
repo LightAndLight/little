@@ -408,7 +408,7 @@ toCode (Document blocks) =
     getCode :: Applicative m => [Content PatchContent] -> m [Content Void]
     getCode cs =
         case cs of
-            [] -> undefined
+            [] -> error "missing <code> tag"
             c : cs' ->
                 case c of
                     CExtend extend ->
