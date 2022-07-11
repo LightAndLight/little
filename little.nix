@@ -1,5 +1,6 @@
 { mkDerivation, attoparsec, base, bytestring, directory, lens, lib
-, mtl, optparse-applicative, process, unordered-containers, xeno
+, mtl, optparse-applicative, process, temporary
+, unordered-containers, xeno
 }:
 mkDerivation {
   pname = "little";
@@ -9,7 +10,7 @@ mkDerivation {
   isExecutable = true;
   executableHaskellDepends = [
     attoparsec base bytestring directory lens mtl optparse-applicative
-    process unordered-containers xeno
+    process temporary unordered-containers xeno
   ];
   license = "unknown";
   hydraPlatforms = lib.platforms.none;
