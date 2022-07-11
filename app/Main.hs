@@ -349,16 +349,8 @@ create path content =
   where
     createCodeState :: Path -> [Content Void] -> CodeState -> CodeState
     createCodeState (Path file fragments) cs (CodeState files) =
-        case HashMap.lookup file files of
-            Nothing ->
-                case fragments of
-                    [] ->
-                        CodeState $ HashMap.insert file (CodeContent cs mempty) files
-                    fragmentName : _ ->
-                        error $ "fragment " <> show fragmentName <> " does not exist"
-            Just content' ->
-                CodeState $
-                    HashMap.insert file (createCodeContent fragments cs content') files
+        let codeContent = Maybe.fromMaybe (CodeContent mempty mempty) (HashMap.lookup file files)
+         in CodeState $ HashMap.insert file (createCodeContent fragments cs codeContent) files
 
     createCodeContent :: [String] -> [Content Void] -> CodeContent -> CodeContent
     createCodeContent path' cs (CodeContent content' fragments) =
