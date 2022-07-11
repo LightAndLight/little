@@ -356,7 +356,7 @@ create path content =
     createCodeContent path' cs (CodeContent content' fragments) =
         case path' of
             [] ->
-                error $ "path already has content"
+                error $ "path " <> show path <> " already has content"
             fragmentName : path'' ->
                 case HashMap.lookup fragmentName fragments of
                     Nothing ->
