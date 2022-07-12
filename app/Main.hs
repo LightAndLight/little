@@ -468,7 +468,8 @@ runCode file mOutDir mExec = do
                             (pure ())
                             files
         Just outDir -> do
-            Directory.removeDirectoryRecursive outDir
+            exists <- Directory.doesDirectoryExist outDir
+            when exists (Directory.removeDirectoryRecursive outDir)
             Directory.createDirectoryIfMissing True outDir
             HashMap.foldlWithKey
                 ( \acc filename fileContent -> do
