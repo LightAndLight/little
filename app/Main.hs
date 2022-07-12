@@ -9,6 +9,7 @@ import Control.Exception (throwIO)
 import Control.Lens.Cons (_head, _last)
 import Control.Lens.Setter (over)
 import Control.Lens.TH (makePrisms)
+import Control.Monad (when)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.State.Class (MonadState, modify)
 import Control.Monad.State.Strict (runState)
@@ -468,7 +469,8 @@ runCode file mOutDir mExec = do
                             (pure ())
                             files
         Just outDir -> do
-            Directory.removeDirectoryRecursive outDir
+            exists <- Directory.doesDirectoryExist outDir
+            when exists (Directory.removeDirectoryRecursive outDir)
             Directory.createDirectoryIfMissing True outDir
             HashMap.foldlWithKey
                 ( \acc filename fileContent -> do
