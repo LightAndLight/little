@@ -5,6 +5,7 @@ import qualified Data.Text.Lazy as Lazy
 import qualified Data.Text.Lazy.Builder as Builder
 import Data.Text.Lazy.Builder (Builder)
 import Data.Text (Text)
+import Data.List (isSuffixOf)
 
 renderDocument :: Document -> Lazy.Text
 renderDocument (Document nodes) =
@@ -34,7 +35,9 @@ renderDefineFragmentNode path mName node =
     DefineFragmentNodeFragmentId ->
       Builder.fromString path <> foldMap (\name -> ":" <> Builder.fromText name) mName
     DefineFragmentNodeFragmentRef refPath refName ->
-      Builder.fromString refPath <> ":" <> Builder.fromText refName
+      if refPath `isSuffixOf` path
+      then Builder.fromText refName
+      else Builder.fromString refPath <> ":" <> Builder.fromText refName
     DefineFragmentNodeCode nodes ->
       foldMap (renderDefineFragmentNode path mName) nodes
     DefineFragmentNodeUncode nodes ->
