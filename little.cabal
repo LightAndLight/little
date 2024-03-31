@@ -9,6 +9,7 @@ library
         base >=4.16 && <5,
         containers,
         monoidal-containers,
+        process,
         text >=2
     hs-source-dirs:   src
     exposed-modules:
@@ -28,6 +29,7 @@ executable little-examples
     hs-source-dirs:   examples
     main-is:          Main.hs
     other-modules:
+        Example.Embed
         Example.Expr
         Example.Script
     ghc-options:      -Wall -Werror

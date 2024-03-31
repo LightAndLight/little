@@ -1,5 +1,6 @@
 module Main where
 
+import qualified Example.Embed
 import qualified Example.Expr
 import qualified Example.Script
 import qualified Little.Doc
@@ -14,10 +15,17 @@ main = do
   exampleExpr
   putStrLn "--- Example.Script ---"
   exampleScript
+  putStrLn "--- Example.Embed ---"
+  exampleEmbed
 
 exampleExpr :: IO ()
 exampleExpr = do
-  Text.Lazy.IO.putStrLn $ Little.Doc.renderDocument Example.Expr.document
+  result <- Little.Doc.renderDocument Example.Expr.document
+  case result of
+    Left err ->
+      print err
+    Right doc ->
+      Text.Lazy.IO.putStrLn doc
 
   case Little.Code.renderDocument Example.Expr.document of
     Left err ->
@@ -29,9 +37,31 @@ exampleExpr = do
 
 exampleScript :: IO ()
 exampleScript = do
-  Text.Lazy.IO.putStrLn $ Little.Doc.renderDocument Example.Script.document
+  result <- Little.Doc.renderDocument Example.Script.document
+  case result of
+    Left err ->
+      print err
+    Right doc ->
+      Text.Lazy.IO.putStrLn doc
 
   case Little.Code.renderDocument Example.Script.document of
+    Left err ->
+      print err
+    Right files ->
+      for_ (Map.toList files) $ \(path, content) -> do
+        putStrLn $ path <> ":"
+        Text.Lazy.IO.putStrLn content
+
+exampleEmbed :: IO ()
+exampleEmbed = do
+  result <- Little.Doc.renderDocument Example.Embed.document
+  case result of
+    Left err ->
+      print err
+    Right doc ->
+      Text.Lazy.IO.putStrLn doc
+
+  case Little.Code.renderDocument Example.Embed.document of
     Left err ->
       print err
     Right files ->

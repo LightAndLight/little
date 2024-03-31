@@ -13,6 +13,7 @@ data Node
   | Nodes [Node]
   | Fragment FragmentAction FilePath (Maybe Text) [FragmentNode]
   | FragmentRef FilePath Text
+  | Run String [String] [RunNode]
   deriving (Eq, Show)
 
 instance IsString Node where
@@ -32,3 +33,14 @@ data FragmentNode
 
 instance IsString FragmentNode where
   fromString = FragmentNodeText . fromString
+
+data RunNode
+  = RunNodeText Text
+  | RunNodeNodes [RunNode]
+  | RunNodeCommand
+  | RunNodeOutput
+  | RunNodeExpected [RunNode]
+  deriving (Eq, Show)
+
+instance IsString RunNode where
+  fromString = RunNodeText . fromString

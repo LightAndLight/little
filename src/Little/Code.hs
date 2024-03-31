@@ -124,6 +124,8 @@ renderNode node =
         foldMap (renderFragmentNode False) nodes
     FragmentRef{} ->
       mempty
+    Run{} ->
+      mempty
 
 renderFragmentNode :: Bool -> FragmentNode -> [FragmentContent]
 renderFragmentNode inCode node =
