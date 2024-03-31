@@ -9,6 +9,10 @@ import Data.Foldable (for_)
 
 main :: IO ()
 main = do
+  exampleExpr
+
+exampleExpr :: IO ()
+exampleExpr = do
   Text.Lazy.IO.putStrLn $ Little.Doc.renderDocument Example.Expr.document
 
   case Little.Code.renderDocument Example.Expr.document of
