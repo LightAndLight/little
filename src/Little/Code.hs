@@ -1,6 +1,7 @@
 module Little.Code where
 
-import Little (Document(..), Node (..), DefineFragmentNode (..))
+import Little (Document(..), Node (..), FragmentNode (..))
+import qualified Little (FragmentAction(..))
 import qualified Data.Text.Lazy as Lazy
 import qualified Data.Text.Lazy.Builder as Builder
 import Data.Text.Lazy.Builder (Builder)
@@ -23,7 +24,7 @@ renderDocument (Document nodes) =
     go fragments =
       Map.fromList <$>
       traverse
-        (\(path, content) -> (,) path <$> renderFile fragments path content) 
+        (\(path, content) -> (,) path <$> renderFile fragments path content)
         (mapMaybe
           (\((path, mName), content) -> do
             guard $ isNothing mName
@@ -61,7 +62,7 @@ renderDocument (Document nodes) =
           ([UndefinedFragment path name], mempty)
         Error err ->
           ([FragmentError err], mempty)
-    
+
     renderFragmentContent ::
       Map (FilePath, Maybe Text) Fragment ->
       FragmentContent ->
@@ -115,31 +116,31 @@ renderNode node =
       mempty
     Nodes nodes ->
       foldMap renderNode nodes
-    DefineFragment path mName nodes ->
+    Fragment Little.Define path mName nodes ->
       MonoidalMap . Map.singleton (path, mName) . Define $
-        foldMap (renderDefineFragmentNode False) nodes
-    AppendFragment path mName nodes ->
+        foldMap (renderFragmentNode False) nodes
+    Fragment Little.Append path mName nodes ->
       MonoidalMap . Map.singleton (path, mName) . Append $
-        foldMap (renderDefineFragmentNode False) nodes
+        foldMap (renderFragmentNode False) nodes
     FragmentRef{} ->
       mempty
 
-renderDefineFragmentNode :: Bool -> DefineFragmentNode -> [FragmentContent]
-renderDefineFragmentNode inCode node =
+renderFragmentNode :: Bool -> FragmentNode -> [FragmentContent]
+renderFragmentNode inCode node =
   case node of
-    DefineFragmentNodeText t ->
+    FragmentNodeText t ->
       if inCode
       then [FragmentContentText $ Builder.fromText t]
       else mempty
-    DefineFragmentNodeNodes nodes ->
-      foldMap (renderDefineFragmentNode inCode) nodes
-    DefineFragmentNodeFragmentId ->
+    FragmentNodeNodes nodes ->
+      foldMap (renderFragmentNode inCode) nodes
+    FragmentNodeFragmentId ->
       mempty
-    DefineFragmentNodeFragmentRef path name ->
+    FragmentNodeFragmentRef path name ->
       if inCode
       then [FragmentContentRef path name]
       else mempty
-    DefineFragmentNodeCode nodes ->
-      foldMap (renderDefineFragmentNode True) nodes
-    DefineFragmentNodeUncode{} ->
+    FragmentNodeCode nodes ->
+      foldMap (renderFragmentNode True) nodes
+    FragmentNodeUncode{} ->
       mempty

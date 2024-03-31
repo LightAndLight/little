@@ -16,23 +16,24 @@ document =
   , "First, I introduce a fragment for the file `Main.hs`:\n"
   , "\n"
   , "```haskell\n"
-  , DefineFragment 
+  , Fragment
+      Define
       "Main.hs"
       Nothing
-      [ DefineFragmentNodeNodes ["-- <<", DefineFragmentNodeFragmentId, ">>=\n"]
-      , DefineFragmentNodeCode
+      [ FragmentNodeNodes ["-- <<", FragmentNodeFragmentId, ">>=\n"]
+      , FragmentNodeCode
           [ "module Main where\n"
           , "\n"
-          , DefineFragmentNodeNodes
-              [ DefineFragmentNodeUncode ["-- <<"]
-              , DefineFragmentNodeFragmentRef "Main.hs" "definitions"
-              , DefineFragmentNodeUncode [">>\n"]
+          , FragmentNodeNodes
+              [ FragmentNodeUncode ["-- <<"]
+              , FragmentNodeFragmentRef "Main.hs" "definitions"
+              , FragmentNodeUncode [">>\n"]
               ]
           , "\n"
-          , DefineFragmentNodeNodes
-              [ DefineFragmentNodeUncode ["-- <<"]
-              , DefineFragmentNodeFragmentRef "Main.hs" "entrypoint"
-              , DefineFragmentNodeUncode [">>\n"]
+          , FragmentNodeNodes
+              [ FragmentNodeUncode ["-- <<"]
+              , FragmentNodeFragmentRef "Main.hs" "entrypoint"
+              , FragmentNodeUncode [">>\n"]
               ]
           ]
       ]
@@ -41,11 +42,12 @@ document =
   , "Next I define an `Expr` datatype:\n"
   , "\n"
   , "```haskell\n"
-  , DefineFragment 
+  , Fragment
+      Define
       "Main.hs"
       (Just "definitions")
-      [ DefineFragmentNodeNodes ["-- <<", DefineFragmentNodeFragmentId, ">>=\n"]
-      , DefineFragmentNodeCode
+      [ FragmentNodeNodes ["-- <<", FragmentNodeFragmentId, ">>=\n"]
+      , FragmentNodeCode
           [ "data Expr\n"
           , "  = Var String\n"
           , "  | Lam String Expr\n"
@@ -61,11 +63,12 @@ document =
       ]
   , "\n"
   , "```haskell\n"
-  , AppendFragment 
+  , Fragment
+      Append
       "Main.hs"
       (Just "definitions")
-      [ DefineFragmentNodeNodes ["-- <<", DefineFragmentNodeFragmentId, ">>+=\n"]
-      , DefineFragmentNodeCode
+      [ FragmentNodeNodes ["-- <<", FragmentNodeFragmentId, ">>+=\n"]
+      , FragmentNodeCode
           [ "\n"
           , "prettyExpr :: Expr -> String\n"
           , "prettyExpr expr =\n"
@@ -80,11 +83,12 @@ document =
   , "Finally, the entrypoint for the Main module:\n"
   , "\n"
   , "```haskell\n"
-  , DefineFragment 
+  , Fragment
+      Define
       "Main.hs"
       (Just "entrypoint")
-      [ DefineFragmentNodeNodes ["-- <<", DefineFragmentNodeFragmentId, ">>=\n"]
-      , DefineFragmentNodeCode
+      [ FragmentNodeNodes ["-- <<", FragmentNodeFragmentId, ">>=\n"]
+      , FragmentNodeCode
           [ "main :: IO ()\n"
           , "main = putStrLn . prettyExpr $ Lam \"x\" (Var \"x\")\n"
           ]

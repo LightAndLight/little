@@ -27,7 +27,6 @@ exampleExpr = do
         putStrLn $ path <> ":"
         Text.Lazy.IO.putStrLn content
 
-    
 exampleScript :: IO ()
 exampleScript = do
   Text.Lazy.IO.putStrLn $ Little.Doc.renderDocument Example.Script.document

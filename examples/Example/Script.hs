@@ -13,44 +13,48 @@ document =
   , "1. Remove containers\n"
   , "\n"
   , "   ```bash\n"
-  , DefineFragment
+  , Fragment
+      Define
       "script.sh"
       Nothing
-      [ DefineFragmentNodeNodes ["   # <<", DefineFragmentNodeFragmentId, ">>=\n"]
-      , DefineFragmentNodeNodes ["   ", DefineFragmentNodeCode ["docker ps --all --format \"{{.ID}}\" | xargs docker rm\n"]]
-      ]      
+      [ FragmentNodeNodes ["   # <<", FragmentNodeFragmentId, ">>=\n"]
+      , FragmentNodeNodes ["   ", FragmentNodeCode ["docker ps --all --format \"{{.ID}}\" | xargs docker rm\n"]]
+      ]
   , "   ```\n"
   , "\n"
   , "2. Remove images\n"
   , "\n"
   , "   ```bash\n"
-  , AppendFragment
+  , Fragment
+      Append
       "script.sh"
       Nothing
-      [ DefineFragmentNodeNodes ["   # <<", DefineFragmentNodeFragmentId, ">>+=\n"]
-      , DefineFragmentNodeNodes ["   ", DefineFragmentNodeCode ["docker images --format \"{{.ID}}\" | xargs docker rmi -f\n"]]
-      ]      
+      [ FragmentNodeNodes ["   # <<", FragmentNodeFragmentId, ">>+=\n"]
+      , FragmentNodeNodes ["   ", FragmentNodeCode ["docker images --format \"{{.ID}}\" | xargs docker rmi -f\n"]]
+      ]
   , "   ```\n"
   , "\n"
   , "3. Remove volumes\n"
   , "\n"
   , "   ```bash\n"
-  , AppendFragment
+  , Fragment
+      Append
       "script.sh"
       Nothing
-      [ DefineFragmentNodeNodes ["   # <<", DefineFragmentNodeFragmentId, ">>+=\n"]
-      , DefineFragmentNodeNodes ["   ", DefineFragmentNodeCode ["docker volume prune\n"]]
-      ]      
+      [ FragmentNodeNodes ["   # <<", FragmentNodeFragmentId, ">>+=\n"]
+      , FragmentNodeNodes ["   ", FragmentNodeCode ["docker volume prune\n"]]
+      ]
   , "   ```\n"
   , "\n"
   , "4. Remove build cache\n"
   , "\n"
   , "   ```bash\n"
-  , AppendFragment
+  , Fragment
+      Append
       "script.sh"
       Nothing
-      [ DefineFragmentNodeNodes ["   # <<", DefineFragmentNodeFragmentId, ">>+=\n"]
-      , DefineFragmentNodeNodes ["   ", DefineFragmentNodeCode ["docker build prune\n"]]
-      ]      
+      [ FragmentNodeNodes ["   # <<", FragmentNodeFragmentId, ">>+=\n"]
+      , FragmentNodeNodes ["   ", FragmentNodeCode ["docker build prune\n"]]
+      ]
   , "   ```\n"
   ]

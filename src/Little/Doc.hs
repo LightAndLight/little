@@ -1,6 +1,6 @@
 module Little.Doc where
 
-import Little (Document(..), Node (..), DefineFragmentNode (..))
+import Little (Document(..), Node (..), FragmentNode (..), FragmentAction (..))
 import qualified Data.Text.Lazy as Lazy
 import qualified Data.Text.Lazy.Builder as Builder
 import Data.Text.Lazy.Builder (Builder)
@@ -18,27 +18,27 @@ renderNode node =
       Builder.fromText t
     Nodes nodes ->
       foldMap renderNode nodes
-    DefineFragment path mName content ->
-      foldMap (renderDefineFragmentNode path mName) content
-    AppendFragment path mName content ->
-      foldMap (renderDefineFragmentNode path mName) content
+    Fragment Define path mName content ->
+      foldMap (renderFragmentNode path mName) content
+    Fragment Append path mName content ->
+      foldMap (renderFragmentNode path mName) content
     FragmentRef path name ->
       Builder.fromString path <> ":" <> Builder.fromText name
 
-renderDefineFragmentNode :: FilePath -> Maybe Text -> DefineFragmentNode -> Builder
-renderDefineFragmentNode path mName node =
+renderFragmentNode :: FilePath -> Maybe Text -> FragmentNode -> Builder
+renderFragmentNode path mName node =
   case node of
-    DefineFragmentNodeText t ->
+    FragmentNodeText t ->
       Builder.fromText t
-    DefineFragmentNodeNodes nodes ->
-      foldMap (renderDefineFragmentNode path mName) nodes
-    DefineFragmentNodeFragmentId ->
+    FragmentNodeNodes nodes ->
+      foldMap (renderFragmentNode path mName) nodes
+    FragmentNodeFragmentId ->
       Builder.fromString path <> foldMap (\name -> ":" <> Builder.fromText name) mName
-    DefineFragmentNodeFragmentRef refPath refName ->
+    FragmentNodeFragmentRef refPath refName ->
       if refPath `isSuffixOf` path
       then Builder.fromText refName
       else Builder.fromString refPath <> ":" <> Builder.fromText refName
-    DefineFragmentNodeCode nodes ->
-      foldMap (renderDefineFragmentNode path mName) nodes
-    DefineFragmentNodeUncode nodes ->
-      foldMap (renderDefineFragmentNode path mName) nodes
+    FragmentNodeCode nodes ->
+      foldMap (renderFragmentNode path mName) nodes
+    FragmentNodeUncode nodes ->
+      foldMap (renderFragmentNode path mName) nodes
