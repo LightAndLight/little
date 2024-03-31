@@ -27,6 +27,8 @@ executable little-examples
         text
     hs-source-dirs:   examples
     main-is:          Main.hs
-    other-modules:    Example.Expr
+    other-modules:
+        Example.Expr
+        Example.Script
     ghc-options:      -Wall -Werror
     default-language: Haskell2010
