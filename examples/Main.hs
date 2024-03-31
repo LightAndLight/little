@@ -10,7 +10,9 @@ import Data.Foldable (for_)
 
 main :: IO ()
 main = do
+  putStrLn "--- Example.Expr ---"
   exampleExpr
+  putStrLn "--- Example.Script ---"
   exampleScript
 
 exampleExpr :: IO ()
