@@ -19,12 +19,12 @@ expr =
   , define 
       "Main.hs"
       Nothing
-      [ nodes ["-- <<", fragId, ">>=\n"]
+      [ line ["-- <<", fragId, ">>="]
       , code
-          [ "module Main where\n"
-          , "\n"
+          [ "module Main where"
+          , ""
           , nodes [uncode ["-- <<"], frag "Main.hs" "definitions", uncode [">>\n"]]
-          , "\n"
+          , ""
           , nodes [uncode ["-- <<"], frag "Main.hs" "entrypoint", uncode [">>\n"]]
           ]
       ]
@@ -36,35 +36,34 @@ expr =
   , define
       "Main.hs"
       (Just "definitions")
-      [ nodes ["-- <<", fragId, ">>=\n"]
+      [ line ["-- <<", fragId, ">>="]
       , code
-          [ "data Expr\n"
-          , "  = Var String\n"
-          , "  | Lam String Expr\n"
-          , "  | App Expr Expr\n"
+          [ "data Expr"
+          , "  = Var String"
+          , "  | Lam String Expr"
+          , "  | App Expr Expr"
           ]
       ]
   , "```"
   , ""
-  , nodes
-      [ "The following function pretty-prints `Expr`s. Its code is appended to the `"
-      , frag "Main.hs" "definitions"
-      , "` fragment.\n"
+  , para
+      [ "The following function pretty-prints `Expr`s."
+      , nodes ["Its code is appended to the `", frag "Main.hs" "definitions", "` fragment."]
       ]
   , ""
   , "```haskell"
   , append
       "Main.hs"
       (Just "definitions")
-      [ nodes ["-- <<", fragId, ">>+=\n"]
+      [ line ["-- <<", fragId, ">>+="]
       , code
-          [ "\n"
-          , "prettyExpr :: Expr -> String\n"
-          , "prettyExpr expr =\n"
-          , "  case expr of\n"
-          , "    Var name -> name\n"
-          , "    Lam name body -> \"\\\\\" <> name <> \" -> \" <> prettyExpr body\n"
-          , "    App f x -> prettyExpr f <> prettyExpr x\n"
+          [ ""
+          , "prettyExpr :: Expr -> String"
+          , "prettyExpr expr ="
+          , "  case expr of"
+          , "    Var name -> name"
+          , "    Lam name body -> \"\\\\\" <> name <> \" -> \" <> prettyExpr body"
+          , "    App f x -> prettyExpr f <> prettyExpr x"
           ]
       ]
   , "```"
@@ -75,10 +74,10 @@ expr =
   , define
       "Main.hs"
       (Just "entrypoint")
-      [ nodes ["-- <<", fragId, ">>=\n"]
+      [ line ["-- <<", fragId, ">>="]
       , code
-          [ "main :: IO ()\n"
-          , "main = putStrLn . prettyExpr $ Lam \"x\" (Var \"x\")\n"
+          [ "main :: IO ()"
+          , "main = putStrLn . prettyExpr $ Lam \"x\" (Var \"x\")"
           ]
       ]
   , "```"

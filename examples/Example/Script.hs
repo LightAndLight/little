@@ -16,8 +16,8 @@ script =
   , define
       "script.sh"
       Nothing
-      [ nodes ["   # <<", fragId, ">>=\n"]
-      , nodes ["   ", code ["docker ps --all --format \"{{.ID}}\" | xargs docker rm\n"]]
+      [ line ["   # <<", fragId, ">>="]
+      , nodes ["   ", code ["docker ps --all --format \"{{.ID}}\" | xargs docker rm"]]
       ]      
   , "   ```"
   , ""
@@ -27,8 +27,8 @@ script =
   , append
       "script.sh"
       Nothing
-      [ nodes ["   # <<", fragId, ">>+=\n"]
-      , nodes ["   ", code ["docker images --format \"{{.ID}}\" | xargs docker rmi -f\n"]]
+      [ line ["   # <<", fragId, ">>+="]
+      , nodes ["   ", code ["docker images --format \"{{.ID}}\" | xargs docker rmi -f"]]
       ]      
   , "   ```"
   , ""
@@ -38,8 +38,8 @@ script =
   , append
       "script.sh"
       Nothing
-      [ nodes ["   # <<", fragId, ">>+=\n"]
-      , nodes ["   ", code ["docker volume prune\n"]]
+      [ line ["   # <<", fragId, ">>+="]
+      , nodes ["   ", code ["docker volume prune"]]
       ]      
   , "   ```"
   , ""
@@ -49,8 +49,8 @@ script =
   , append
       "script.sh"
       Nothing
-      [ nodes ["   # <<", fragId, ">>+=\n"]
-      , nodes ["   ", code ["docker build prune\n"]]
+      [ line ["   # <<", fragId, ">>+="]
+      , nodes ["   ", code ["docker build prune"]]
       ]      
   , "   ```"
   ]

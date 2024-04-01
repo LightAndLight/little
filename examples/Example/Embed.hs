@@ -14,7 +14,7 @@ embed =
   , run
       "mktemp"
       ["--tmpdir"]
-      [ nodes ["  $ ", command, "\n"]
+      [ line ["  $ ", command]
       , nodes ["  ", output]
       ]
   , "  ```"
@@ -23,7 +23,7 @@ embed =
   , run
       "mktemp"
       ["--tmpdir"]
-      [ nodes ["  $ ", command, "\n"]
+      [ line ["  $ ", command]
       , nodes ["  ", output]
       ]
   , "  ```"
@@ -32,23 +32,21 @@ embed =
   , run
       "mktemp"
       ["--tmpdir"]
-      [ nodes ["  $ ", command, "\n"]
+      [ line ["  $ ", command]
       , nodes ["  ", output]
       ]
   , "  ```"
   , ""
-  , nodes
+  , para
       ["If it's important that the command gives a *specific* output, you can write that output down and *check* that it matches the output of the command."
-      , " "
       , "The following code is written in a way that causes Little to raise an error when the command output differs from what is documented:"
-      , "\n"
       ]
   , ""
   , "```"
   , run
       "echo"
       ["Hello, world!"]
-      [ nodes ["$ ", command, "\n"]
+      [ line ["$ ", command]
       , expected ["Hello, world!\n"]
       ]
   , "```"
