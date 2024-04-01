@@ -20,14 +20,14 @@ main = do
 
 exampleExpr :: IO ()
 exampleExpr = do
-  result <- Little.Doc.renderDocument Example.Expr.document
+  result <- Little.Doc.renderDocument Example.Expr.expr
   case result of
     Left err ->
       print err
     Right doc ->
       Text.Lazy.IO.putStrLn doc
 
-  case Little.Code.renderDocument Example.Expr.document of
+  case Little.Code.renderDocument Example.Expr.expr of
     Left err ->
       print err
     Right files ->
@@ -37,14 +37,14 @@ exampleExpr = do
 
 exampleScript :: IO ()
 exampleScript = do
-  result <- Little.Doc.renderDocument Example.Script.document
+  result <- Little.Doc.renderDocument Example.Script.script
   case result of
     Left err ->
       print err
     Right doc ->
       Text.Lazy.IO.putStrLn doc
 
-  case Little.Code.renderDocument Example.Script.document of
+  case Little.Code.renderDocument Example.Script.script of
     Left err ->
       print err
     Right files ->
@@ -54,14 +54,14 @@ exampleScript = do
 
 exampleEmbed :: IO ()
 exampleEmbed = do
-  result <- Little.Doc.renderDocument Example.Embed.document
+  result <- Little.Doc.renderDocument Example.Embed.embed
   case result of
     Left err ->
       print err
     Right doc ->
       Text.Lazy.IO.putStrLn doc
 
-  case Little.Code.renderDocument Example.Embed.document of
+  case Little.Code.renderDocument Example.Embed.embed of
     Left err ->
       print err
     Right files ->

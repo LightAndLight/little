@@ -1,11 +1,11 @@
 {-# language OverloadedStrings #-}
-module Example.Script (document) where
+module Example.Script (script) where
 
 import Little
 
-document :: Document
-document =
-  Document
+script :: Document
+script =
+  document
   [ "# A literate Bash script\n"
   , "\n"
   , "This script describes how to clean up `docker` resources.\n"
@@ -13,48 +13,44 @@ document =
   , "1. Remove containers\n"
   , "\n"
   , "   ```bash\n"
-  , Fragment
-      Define
+  , define
       "script.sh"
       Nothing
-      [ FragmentNodeNodes ["   # <<", FragmentNodeFragmentId, ">>=\n"]
-      , FragmentNodeNodes ["   ", FragmentNodeCode ["docker ps --all --format \"{{.ID}}\" | xargs docker rm\n"]]
-      ]
+      [ nodes ["   # <<", fragId, ">>=\n"]
+      , nodes ["   ", code ["docker ps --all --format \"{{.ID}}\" | xargs docker rm\n"]]
+      ]      
   , "   ```\n"
   , "\n"
   , "2. Remove images\n"
   , "\n"
   , "   ```bash\n"
-  , Fragment
-      Append
+  , append
       "script.sh"
       Nothing
-      [ FragmentNodeNodes ["   # <<", FragmentNodeFragmentId, ">>+=\n"]
-      , FragmentNodeNodes ["   ", FragmentNodeCode ["docker images --format \"{{.ID}}\" | xargs docker rmi -f\n"]]
-      ]
+      [ nodes ["   # <<", fragId, ">>+=\n"]
+      , nodes ["   ", code ["docker images --format \"{{.ID}}\" | xargs docker rmi -f\n"]]
+      ]      
   , "   ```\n"
   , "\n"
   , "3. Remove volumes\n"
   , "\n"
   , "   ```bash\n"
-  , Fragment
-      Append
+  , append
       "script.sh"
       Nothing
-      [ FragmentNodeNodes ["   # <<", FragmentNodeFragmentId, ">>+=\n"]
-      , FragmentNodeNodes ["   ", FragmentNodeCode ["docker volume prune\n"]]
-      ]
+      [ nodes ["   # <<", fragId, ">>+=\n"]
+      , nodes ["   ", code ["docker volume prune\n"]]
+      ]      
   , "   ```\n"
   , "\n"
   , "4. Remove build cache\n"
   , "\n"
   , "   ```bash\n"
-  , Fragment
-      Append
+  , append
       "script.sh"
       Nothing
-      [ FragmentNodeNodes ["   # <<", FragmentNodeFragmentId, ">>+=\n"]
-      , FragmentNodeNodes ["   ", FragmentNodeCode ["docker build prune\n"]]
-      ]
+      [ nodes ["   # <<", fragId, ">>+=\n"]
+      , nodes ["   ", code ["docker build prune\n"]]
+      ]      
   , "   ```\n"
   ]

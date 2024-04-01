@@ -1,7 +1,7 @@
 module Little.Code where
 
-import Little (Document(..), Node (..), FragmentNode (..))
-import qualified Little (FragmentAction(..))
+import Little.Types (Document(..), Node (..), FragmentNode (..))
+import qualified Little.Types as Little (FragmentAction(..))
 import qualified Data.Text.Lazy as Lazy
 import qualified Data.Text.Lazy.Builder as Builder
 import Data.Text.Lazy.Builder (Builder)

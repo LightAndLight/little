@@ -1,46 +1,100 @@
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE AllowAmbiguousTypes #-}
-module Little where
+module Little 
+  ( -- * Documents
+  Document
+  , document
+  
+  -- * Nodes
+  , Node
+  
+  -- ** Text nodes
+  , HasText(text)
+  
+  -- ** Nested nodes
+  , HasNodes(nodes)
+  
+  -- ** Fragment manipulation
+  , FragmentNode
+  , define
+  , append
+  , fragId
+  , code
+  , uncode
 
+  -- ** Fragment references
+  , HasFrag(frag)
+
+  -- ** Command execution
+  , RunNode
+  , run
+  , command
+  , output
+  , expected
+  )
+where
+
+import Little.Types
+import Data.String (IsString, fromString)
 import Data.Text (Text)
-import Data.String (IsString(..))
 
-newtype Document = Document [Node]
-  deriving (Eq, Show)
+document :: [Node] -> Document
+document = Document
 
-data Node
-  = Text Text
-  | Nodes [Node]
-  | Fragment FragmentAction FilePath (Maybe Text) [FragmentNode]
-  | FragmentRef FilePath Text
-  | Run String [String] [RunNode]
-  deriving (Eq, Show)
+class IsString a => HasText a where
+  text :: String -> a
 
-instance IsString Node where
-  fromString = Text . fromString
+class HasText a => HasNodes a where
+  nodes :: [a] -> a
 
-data FragmentAction = Define | Append
-  deriving (Eq, Show)
+instance HasText Node where
+  text = Text . fromString
 
-data FragmentNode
-  = FragmentNodeText Text
-  | FragmentNodeNodes [FragmentNode]
-  | FragmentNodeFragmentId
-  | FragmentNodeFragmentRef FilePath Text
-  | FragmentNodeCode [FragmentNode]
-  | FragmentNodeUncode [FragmentNode]
-  deriving (Eq, Show)
+instance HasNodes Node where
+  nodes = Nodes
 
-instance IsString FragmentNode where
-  fromString = FragmentNodeText . fromString
+instance HasText FragmentNode where
+  text = FragmentNodeText . fromString
 
-data RunNode
-  = RunNodeText Text
-  | RunNodeNodes [RunNode]
-  | RunNodeCommand
-  | RunNodeOutput
-  | RunNodeExpected [RunNode]
-  deriving (Eq, Show)
+instance HasNodes FragmentNode where
+  nodes = FragmentNodeNodes
 
-instance IsString RunNode where
-  fromString = RunNodeText . fromString
+define :: FilePath -> Maybe Text -> [FragmentNode] -> Node
+define = Fragment Define
+
+append :: FilePath -> Maybe Text -> [FragmentNode] -> Node
+append = Fragment Append
+
+fragId :: FragmentNode
+fragId = FragmentNodeFragmentId
+
+code :: [FragmentNode] -> FragmentNode
+code = FragmentNodeCode
+
+uncode :: [FragmentNode] -> FragmentNode
+uncode = FragmentNodeUncode
+
+class HasNodes a => HasFrag a where
+  frag :: FilePath -> Text -> a
+
+instance HasFrag Node where
+  frag = FragmentRef
+
+instance HasFrag FragmentNode where
+  frag = FragmentNodeFragmentRef
+
+instance HasText RunNode where
+  text = RunNodeText . fromString
+
+instance HasNodes RunNode where
+  nodes = RunNodeNodes
+
+run :: String -> [String] -> [RunNode] -> Node
+run = Run
+
+command :: RunNode
+command = RunNodeCommand
+
+output :: RunNode
+output = RunNodeOutput
+
+expected :: [RunNode] -> RunNode
+expected = RunNodeExpected

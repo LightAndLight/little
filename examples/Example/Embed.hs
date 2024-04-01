@@ -1,43 +1,43 @@
 {-# language OverloadedStrings #-}
-module Example.Embed (document) where
+module Example.Embed (embed) where
 
 import Little
 
-document :: Document
-document =
-  Document
+embed :: Document
+embed =
+  document
   [ "# Embedding program results\n"
   , "\n"
   , "Little documents can call other programs and embed their results.\n"
   , "\n"
   , "* ```\n"
-  , Run
+  , run
       "mktemp"
       ["--tmpdir"]
-      [ RunNodeNodes ["  $ ", RunNodeCommand, "\n"]
-      , RunNodeNodes ["  ", RunNodeOutput]
+      [ nodes ["  $ ", command, "\n"]
+      , nodes ["  ", output]
       ]
   , "  ```\n"
   , "\n"
   , "* ```\n"
-  , Run
+  , run
       "mktemp"
       ["--tmpdir"]
-      [ RunNodeNodes ["  $ ", RunNodeCommand, "\n"]
-      , RunNodeNodes ["  ", RunNodeOutput]
+      [ nodes ["  $ ", command, "\n"]
+      , nodes ["  ", output]
       ]
   , "  ```\n"
   , "\n"
   , "* ```\n"
-  , Run
+  , run
       "mktemp"
       ["--tmpdir"]
-      [ RunNodeNodes ["  $ ", RunNodeCommand, "\n"]
-      , RunNodeNodes ["  ", RunNodeOutput]
+      [ nodes ["  $ ", command, "\n"]
+      , nodes ["  ", output]
       ]
   , "  ```\n"
   , "\n"
-  , Nodes
+  , nodes
       ["If it's important that the command gives a *specific* output, you can write that output down and *check* that it matches the output of the command."
       , " "
       , "The following code is written in a way that causes Little to raise an error when the command output differs from what is documented:"
@@ -45,11 +45,11 @@ document =
       ]
   , "\n"
   , "```\n"
-  , Run
+  , run
       "echo"
       ["Hello, world!"]
-      [ RunNodeNodes ["$ ", RunNodeCommand, "\n"]
-      , RunNodeExpected ["Hello, world!\n"]
+      [ nodes ["$ ", command, "\n"]
+      , expected ["Hello, world!\n"]
       ]
   , "```\n"
   ]

@@ -16,6 +16,7 @@ library
         Little
         Little.Code
         Little.Doc
+        Little.Types
     ghc-options:      -Wall -Werror
     default-language: Haskell2010
     default-extensions: OverloadedStrings

@@ -1,6 +1,6 @@
 module Little.Doc where
 
-import Little (Document(..), Node (..), FragmentNode (..), FragmentAction (..), RunNode (..))
+import Little.Types (Document(..), Node (..), FragmentNode (..), FragmentAction (..), RunNode (..))
 import qualified Data.Text.Lazy as Lazy
 import qualified Data.Text.Lazy.Builder as Builder
 import Data.Text.Lazy.Builder (Builder)
