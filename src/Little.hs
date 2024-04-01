@@ -36,8 +36,9 @@ import Little.Types
 import Data.String (IsString, fromString)
 import Data.Text (Text)
 
+-- | 'text' child nodes have a newline appended.
 document :: [Node] -> Document
-document = Document
+document = Document . fmap (\node -> case node of; Text{} -> Nodes [node, "\n"]; _ -> node)
 
 class IsString a => HasText a where
   text :: String -> a

@@ -6,16 +6,16 @@ import Little
 expr :: Document
 expr =
   document
-  [ "# Expression example\n"
-  , "\n"
-  , "There are two ways to view this document:\n"
-  , "\n"
-  , "1. A Markdown document explaining some Haskell code\n"
-  , "2. The Haskell code that was explained in the Markdown document\n"
-  , "\n"
-  , "First, I introduce a fragment for the file `Main.hs`:\n"
-  , "\n"
-  , "```haskell\n"
+  [ "# Expression example"
+  , ""
+  , "There are two ways to view this document:"
+  , ""
+  , "1. A Markdown document explaining some Haskell code"
+  , "2. The Haskell code that was explained in the Markdown document"
+  , ""
+  , "First, I introduce a fragment for the file `Main.hs`:"
+  , ""
+  , "```haskell"
   , define 
       "Main.hs"
       Nothing
@@ -28,11 +28,11 @@ expr =
           , nodes [uncode ["-- <<"], frag "Main.hs" "entrypoint", uncode [">>\n"]]
           ]
       ]
-  , "```\n"
-  , "\n"
-  , "Next I define an `Expr` datatype:\n"
-  , "\n"
-  , "```haskell\n"
+  , "```"
+  , ""
+  , "Next I define an `Expr` datatype:"
+  , ""
+  , "```haskell"
   , define
       "Main.hs"
       (Just "definitions")
@@ -44,15 +44,15 @@ expr =
           , "  | App Expr Expr\n"
           ]
       ]
-  , "```\n"
-  , "\n"
+  , "```"
+  , ""
   , nodes
       [ "The following function pretty-prints `Expr`s. Its code is appended to the `"
       , frag "Main.hs" "definitions"
       , "` fragment.\n"
       ]
-  , "\n"
-  , "```haskell\n"
+  , ""
+  , "```haskell"
   , append
       "Main.hs"
       (Just "definitions")
@@ -67,11 +67,11 @@ expr =
           , "    App f x -> prettyExpr f <> prettyExpr x\n"
           ]
       ]
-  , "```\n"
-  , "\n"
-  , "Finally, the entrypoint for the Main module:\n"
-  , "\n"
-  , "```haskell\n"
+  , "```"
+  , ""
+  , "Finally, the entrypoint for the Main module:"
+  , ""
+  , "```haskell"
   , define
       "Main.hs"
       (Just "entrypoint")
@@ -81,5 +81,5 @@ expr =
           , "main = putStrLn . prettyExpr $ Lam \"x\" (Var \"x\")\n"
           ]
       ]
-  , "```\n"
+  , "```"
   ]
