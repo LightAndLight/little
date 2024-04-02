@@ -15,9 +15,9 @@ module Little
   , para
   
   -- ** Fragment manipulation
-  , FragmentNode
   , define
   , append
+  , FragmentNode
   , fragId
   , code
   , uncode
@@ -26,8 +26,8 @@ module Little
   , HasFrag(frag)
 
   -- ** Command execution
-  , RunNode
   , run
+  , RunNode
   , command
   , output
   , expected
@@ -39,7 +39,7 @@ import Data.String (IsString, fromString)
 import Data.Text (Text)
 import Data.List (intersperse)
 
--- | 'text' child nodes have a newline appended.
+-- | Note: 'text' child nodes have a newline appended.
 document :: [Node] -> Document
 document =
   Document .
@@ -75,16 +75,43 @@ instance HasText FragmentNode where
 instance HasNodes FragmentNode where
   nodes = FragmentNodeNodes
 
-define :: FilePath -> Maybe Text -> [FragmentNode] -> Node
+-- | Define a fragment.
+--
+-- It is an error to re-'define' a fragment.
+define ::
+  -- | File the fragment belongs to.
+  FilePath ->
+  -- | The name of the fragment within the file.
+  --
+  -- If omitted, the definition is for the entire file.
+  Maybe Text ->
+  [FragmentNode] ->
+  Node
 define = Fragment Define
 
-append :: FilePath -> Maybe Text -> [FragmentNode] -> Node
+-- | Append to a fragment.
+--
+-- It is an error to append to an un'define'd fragment.
+append ::
+  -- | File the fragment belongs to.
+  FilePath ->
+  -- | The name of the fragment within the file.
+  --
+  -- If omitted, the definition is for the entire file.
+  Maybe Text ->
+  [FragmentNode] ->
+  Node
 append = Fragment Append
 
+-- | The current fragment's ID.
 fragId :: FragmentNode
 fragId = FragmentNodeFragmentId
 
--- | 'text' children have a newline appended.
+-- | Identifies the fragment's code.
+--
+-- 'FragmentNode's outside 'code' are ignored when rendering the document as source code.
+--
+-- Note: 'text' children have a newline appended.
 code :: [FragmentNode] -> FragmentNode
 code =
   FragmentNodeCode .
@@ -95,6 +122,10 @@ code =
         _ -> node
     )
 
+-- | Excludes content from the fragment's code.
+--
+-- Inside 'code', 'uncode' marks content that should be ignored when rendering the document as source code.
+-- Outside of 'code', 'uncode' is equivalent to 'nodes'.
 uncode :: [FragmentNode] -> FragmentNode
 uncode = FragmentNodeUncode
 
